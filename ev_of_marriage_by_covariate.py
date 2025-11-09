@@ -214,8 +214,7 @@ if __name__ == "__main__":
                 .median()
                 .sort_values(ascending=False)
     )
-    sns.boxplot(x="MARST_label", y="INCWAGE", data=df_25_45)
-    plt.xticks(rotation=45)
-    plt.title("Income Distribution by Marital Status (Ages 25–45)")
-    plt.show()
-
+    # sns.boxplot(x="MARST_label", y="INCWAGE", data=df_25_45)
+    # plt.xticks(rotation=45)
+    # plt.title("Income Distribution by Marital Status (Ages 25–45)")
+    # plt.show()
