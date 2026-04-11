@@ -6,12 +6,7 @@ import pyarrow
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-# =====================================================================
-# Config
-# =====================================================================
-
-RAW_PATH = "/Users/jackmilligan/Data Sets/2025_11_ev_marriage_data.csv.gz"
-CACHE_PATH = "/Users/jackmilligan/Data Sets/marriage_clean.parquet"
+from .config import RAW_PATH, CACHE_PATH
 
 
 # =====================================================================

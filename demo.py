@@ -5,12 +5,11 @@ Quick demonstration script showing key project capabilities.
 Run this to see the project in action.
 """
 
-from ev_of_marriage_by_covariate import load_ipums_ev_data
-from risk_model import build_logit_dataset, fit_divorce_logit
-from payoff_model import (
+from src.ev_of_marriage_by_covariate import load_ipums_ev_data
+from src.payoff_model import (
     estimate_income_effects,
     train_default_risk_model,
-    predict_divorce_prob,
+    predict_divorce_prob_from_profile,
     compute_ev_of_marriage
 )
 
@@ -68,7 +67,7 @@ def main():
     for example in examples:
         try:
             # Predict divorce probability
-            p_div = predict_divorce_prob(
+            p_div = predict_divorce_prob_from_profile(
                 example,
                 model,
                 scaler,

@@ -62,16 +62,21 @@ pip install -r requirements.txt
 
 ```python
 from ev_of_marriage_by_covariate import load_ipums_ev_data
-from risk_model import build_logit_dataset, fit_divorce_logit
-from payoff_model import compute_ev_of_marriage, predict_divorce_prob
+from payoff_model import (
+    train_default_risk_model,
+    predict_divorce_prob_from_profile,
+    estimate_income_effects,
+    compute_ev_of_marriage,
+)
 
 # Load data
 df = load_ipums_ev_data()
 
+# Estimate income effects from data
+econ = estimate_income_effects(df, method="regression")
+
 # Train divorce risk model
-X, y = build_logit_dataset(df, age_min=25, age_max=45)
-result = fit_divorce_logit(X, y)
-print(f"ROC AUC: {result['roc_auc']:.3f}")
+model, scaler, feature_cols = train_default_risk_model()
 
 # Calculate EV of marriage for a profile
 profile = {
@@ -79,12 +84,15 @@ profile = {
     "sex": "Male",
     "educ_label": "4 yrs college",
     "incwage": 80000,
-    "yrmarr": 2020
+    "yrmarr": 2020,
 }
-p_divorce = predict_divorce_prob(profile, result["model"], result["scaler"], 
-                                  result["num_cols"], result["feature_names"])
-ev = compute_ev_of_marriage(profile, p_divorce, married_uplift=0.12, 
-                            divorced_penalty=-0.08)
+p_divorce = predict_divorce_prob_from_profile(profile, model, scaler, feature_cols)
+ev = compute_ev_of_marriage(
+    profile, p_divorce,
+    married_uplift=econ["married_uplift"],
+    divorced_penalty=econ["divorced_penalty"],
+)
+print(f"P(divorce): {p_divorce:.3f}")
 print(f"Expected value difference: ${ev['delta_EV_marry_minus_single']:,.0f}")
 ```
 

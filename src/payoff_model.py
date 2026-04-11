@@ -23,8 +23,7 @@ import numpy as np
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 
-from ev_of_marriage_by_covariate import load_ipums_ev_data, get_label_maps
-from risk_model import build_logit_dataset, fit_divorce_logit
+from .ev_of_marriage_by_covariate import load_ipums_ev_data, get_label_maps
 
 NUM_COLS = ["AGE", "is_female", "log_incwage", "YRMARR"]
 
@@ -116,6 +115,7 @@ def train_default_risk_model(
             print(f"⚠️ Failed to load cache: {e}. Retraining...")
     
     # Train new model
+    from .risk_model import build_logit_dataset, fit_divorce_logit
     print("🔹 Training divorce risk model...")
     df = load_ipums_ev_data()
     X, y = build_logit_dataset(df, age_min=25, age_max=45, ever_married_only=True)
@@ -349,10 +349,10 @@ def build_feature_row(profile: dict,
 # 4. Predict P(divorce | covariates)
 # =========================================================
 
-def predict_divorce_prob(profile: dict,
-                         model,
-                         scaler,
-                         feature_cols: list) -> float:
+def predict_divorce_prob_from_profile(profile: dict,
+                                      model,
+                                      scaler,
+                                      feature_cols: list) -> float:
     """
     Given a profile and fitted model, return predicted probability of divorce.
     
@@ -504,7 +504,94 @@ def compute_ev_of_marriage(profile: dict,
 
 
 # =========================================================
-# 6. Example usage: evaluate a few profiles
+# 6. Sensitivity analysis
+# =========================================================
+
+def sensitivity_analysis(
+    profile: dict,
+    p_divorce: float,
+    married_uplift: float,
+    divorced_penalty: float,
+) -> pd.DataFrame:
+    """
+    One-at-a-time sensitivity analysis on the EV model's structural assumptions.
+
+    Holds two parameters at their defaults while varying the third across a range.
+    Defaults and rationale:
+      - horizon_years=10: typical medium-term financial planning horizon
+      - discount_rate=0.03: approximate long-run real risk-free rate (US 10-yr TIPS)
+      - divorce_fixed_cost=20000: order-of-magnitude legal + household separation costs
+
+    Args:
+        profile: Profile dict with 'incwage' key
+        p_divorce: Model-predicted divorce probability
+        married_uplift: Income uplift fraction for married state
+        divorced_penalty: Income penalty fraction for divorced state
+
+    Returns:
+        DataFrame with columns [parameter, value, delta_EV]
+    """
+    rows = []
+
+    for horizon in [5, 10, 20, 30]:
+        ev = compute_ev_of_marriage(
+            profile, p_divorce, married_uplift, divorced_penalty,
+            horizon_years=horizon, discount_rate=0.03, divorce_fixed_cost=20000,
+        )
+        rows.append({"parameter": "horizon_years", "value": horizon,
+                     "delta_EV": ev["delta_EV_marry_minus_single"]})
+
+    for rate in [0.01, 0.03, 0.05, 0.07]:
+        ev = compute_ev_of_marriage(
+            profile, p_divorce, married_uplift, divorced_penalty,
+            horizon_years=10, discount_rate=rate, divorce_fixed_cost=20000,
+        )
+        rows.append({"parameter": "discount_rate", "value": rate,
+                     "delta_EV": ev["delta_EV_marry_minus_single"]})
+
+    for cost in [0, 10_000, 20_000, 50_000]:
+        ev = compute_ev_of_marriage(
+            profile, p_divorce, married_uplift, divorced_penalty,
+            horizon_years=10, discount_rate=0.03, divorce_fixed_cost=cost,
+        )
+        rows.append({"parameter": "divorce_fixed_cost", "value": cost,
+                     "delta_EV": ev["delta_EV_marry_minus_single"]})
+
+    return pd.DataFrame(rows)
+
+
+def plot_sensitivity_analysis(results: pd.DataFrame, profile_label: str = "") -> None:
+    """
+    Three-panel plot showing how delta_EV responds to each varied parameter.
+    Saves to visuals/sensitivity_analysis.png.
+    """
+    import os
+    import matplotlib.pyplot as plt
+
+    params = results["parameter"].unique()
+    fig, axes = plt.subplots(1, len(params), figsize=(5 * len(params), 4), sharey=False)
+
+    for ax, param in zip(axes, params):
+        sub = results[results["parameter"] == param]
+        ax.plot(sub["value"], sub["delta_EV"], marker="o")
+        ax.axhline(0, linestyle="--", color="red", linewidth=0.8, label="Break-even")
+        ax.set_xlabel(param)
+        ax.set_ylabel("Delta EV (marry - single)")
+        ax.set_title(param.replace("_", " ").title())
+        ax.grid(alpha=0.3)
+
+    title = f"EV Sensitivity Analysis{': ' + profile_label if profile_label else ''}"
+    fig.suptitle(title)
+    fig.tight_layout()
+
+    os.makedirs("visuals", exist_ok=True)
+    path = os.path.join("visuals", "sensitivity_analysis.png")
+    fig.savefig(path, dpi=300, bbox_inches="tight")
+    print(f"Saved visualization: {path}")
+
+
+# =========================================================
+# 7. Example usage: evaluate a few profiles
 # =========================================================
 
 if __name__ == "__main__":
@@ -566,7 +653,7 @@ if __name__ == "__main__":
     
     for p in profiles:
         try:
-            p_div = predict_divorce_prob(p, model, scaler, feature_cols)
+            p_div = predict_divorce_prob_from_profile(p, model, scaler, feature_cols)
             ev = compute_ev_of_marriage(
                 p,
                 p_divorce=p_div,
@@ -590,6 +677,19 @@ if __name__ == "__main__":
             import traceback
             traceback.print_exc()
     
+    # ---------- Sensitivity analysis on first profile ----------
+    first_profile = profiles[0]
+    try:
+        p_div_first = predict_divorce_prob_from_profile(first_profile, model, scaler, feature_cols)
+        print("\n" + "=" * 60)
+        print(f"Sensitivity Analysis: {first_profile['label']}")
+        print("=" * 60)
+        sens = sensitivity_analysis(first_profile, p_div_first, married_uplift, divorced_penalty)
+        print(sens.to_string(index=False))
+        plot_sensitivity_analysis(sens, profile_label=first_profile["label"])
+    except Exception as e:
+        print(f"Sensitivity analysis failed: {e}")
+
     print("\n" + "=" * 60)
     print("Analysis complete!")
     print("=" * 60)

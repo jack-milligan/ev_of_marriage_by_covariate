@@ -12,9 +12,9 @@ from sklearn.metrics import roc_auc_score, brier_score_loss
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
 
-from ev_of_marriage_by_covariate import load_ipums_ev_data
-from risk_model import build_logit_dataset, fit_divorce_logit
-from payoff_model import estimate_income_effects
+from .ev_of_marriage_by_covariate import load_ipums_ev_data
+from .risk_model import build_logit_dataset, fit_divorce_logit
+from .payoff_model import estimate_income_effects
 
 def cross_validate_model(X, y, n_splits=5, random_state=42):
     """Simple k-fold cross-validation."""

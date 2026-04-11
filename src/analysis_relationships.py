@@ -1,21 +1,8 @@
-import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-# =========================================================
-# 0. Utility: save all plots to /visuals folder
-# =========================================================
-
-def save_visual(fig: plt.Figure, filename: str, folder: str = "visuals") -> None:
-    """
-    Save matplotlib Figure to the visuals/ directory.
-    Creates the folder if it doesn't exist.
-    """
-    os.makedirs(folder, exist_ok=True)
-    path = os.path.join(folder, filename)
-    fig.savefig(path, dpi=300, bbox_inches="tight")
-    print(f"💾 Saved visualization: {path}")
+from .utils import save_visual
 
 # =========================================================
 # 1. DIVORCE RATE BY AGE, SEX, EDUCATION
@@ -271,7 +258,7 @@ def plot_prob_divorced_given_yrmarr_sex(df: pd.DataFrame,
 # Example usage (if running this module directly)
 # =========================================================
 if __name__ == "__main__":
-    from ev_of_marriage_by_covariate import load_ipums_ev_data  # adjust import to your loader module
+    from .ev_of_marriage_by_covariate import load_ipums_ev_data
 
     df = load_ipums_ev_data()
 
