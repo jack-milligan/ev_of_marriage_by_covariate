@@ -25,11 +25,19 @@ This project builds predictive models to estimate:
 
 ```
 ev_or_marriage_by_covariate/
-├── ev_of_marriage_by_covariate.py  # Data loading and preprocessing
-├── analysis_relationships.py        # Exploratory data analysis
-├── risk_model.py                   # Divorce risk modeling
-├── payoff_model.py                 # Economic value calculations
-├── validation.py                   # Model validation framework
+├── src/                            # Library package
+│   ├── ev_of_marriage_by_covariate.py  # Data loading and preprocessing
+│   ├── analysis_relationships.py        # Exploratory data analysis
+│   ├── risk_model.py                   # Divorce risk modeling
+│   ├── payoff_model.py                 # Economic value calculations
+│   ├── validation.py                   # Model validation framework
+│   ├── config.py                       # Path configuration
+│   └── utils.py                        # Shared utilities
+├── tests/                          # Test suite
+├── demo.py                         # End-to-end walkthrough
+├── eda_narrative.py                # EDA narrative + visualizations
+├── generate_report.py              # Report generation
+├── outputs/                        # Generated reports/outputs
 ├── visuals/                        # Generated visualizations
 ├── models/                         # Saved models
 └── README.md                       # This file
@@ -51,8 +59,8 @@ git clone <repository-url>
 cd ev_or_marriage_by_covariate
 
 # Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
@@ -61,8 +69,8 @@ pip install -r requirements.txt
 ### Basic Usage
 
 ```python
-from ev_of_marriage_by_covariate import load_ipums_ev_data
-from payoff_model import (
+from src.ev_of_marriage_by_covariate import load_ipums_ev_data
+from src.payoff_model import (
     train_default_risk_model,
     predict_divorce_prob_from_profile,
     estimate_income_effects,
@@ -99,17 +107,20 @@ print(f"Expected value difference: ${ev['delta_EV_marry_minus_single']:,.0f}")
 ### Run Analysis
 
 ```bash
-# Generate all visualizations
-python analysis_relationships.py
+# EDA narrative + visualizations
+python eda_narrative.py
 
 # Train models and generate diagnostics
-python risk_model.py
+python -m src.risk_model
 
 # Run EV calculations
-python payoff_model.py
+python -m src.payoff_model
 
 # Run comprehensive validation
-python validation.py
+python -m src.validation
+
+# End-to-end walkthrough
+python demo.py
 ```
 
 ## 📈 Key Results
@@ -153,7 +164,7 @@ The project includes comprehensive validation:
 
 Run validation:
 ```bash
-python validation.py
+python -m src.validation
 ```
 
 
@@ -229,7 +240,7 @@ All saved to `visuals/` directory.
 - [ ] Temporal validation (train on earlier years, test on later)
 - [ ] Geographic analysis (state-level effects)
 - [ ] Web application for predictions
-- [ ] Unit tests
+- [x] Unit tests
 - [ ] CI/CD pipeline
 
 ## 📝 Citation
